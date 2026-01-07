@@ -1,77 +1,107 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { usePlayer } from '../context/PlayerContext';
+import { colors } from '../theme/colors';
+import { BlurView } from 'expo-blur'; // Ensure expo-blur is installed
+
+const { width } = Dimensions.get('window');
 
 export default function MiniPlayer() {
   const { currentTrack, isPlaying, togglePlay, stopTrack, progressPercent } = usePlayer();
 
-  // If currentTrack is null (set by stopTrack), the player hides automatically
   if (!currentTrack) return null;
 
   return (
-    <View style={styles.container}>
-      {/* Progress Bar Line */}
-      <View style={styles.progressBackground}>
-        <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-      </View>
-
-      <View style={styles.content}>
-        <Image source={{ uri: currentTrack.image }} style={styles.img} />
-        
-        <View style={styles.info}>
-          <Text style={styles.title} numberOfLines={1}>{currentTrack.title}</Text>
-          <Text style={styles.artist} numberOfLines={1}>{currentTrack.artist}</Text>
+    <View style={styles.outerContainer}>
+      <BlurView intensity={80} tint="dark" style={styles.container}>
+        {/* Glowing Progress Bar */}
+        <View style={styles.progressBackground}>
+          <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
         </View>
 
-        <View style={styles.controls}>
-          {/* Play / Pause Toggle */}
-          <TouchableOpacity onPress={togglePlay} style={styles.iconBtn}>
-            <Ionicons 
-              name={isPlaying ? "pause" : "play"} 
-              size={26} 
-              color="white" 
-            />
-          </TouchableOpacity>
+        <View style={styles.content}>
+          <Image source={{ uri: currentTrack.image }} style={styles.img} />
+          
+          <View style={styles.info}>
+            <Text style={styles.title} numberOfLines={1}>
+              {currentTrack.title}
+            </Text>
+            <View style={styles.artistRow}>
+              {isPlaying && <View style={styles.liveDot} />}
+              <Text style={styles.artist} numberOfLines={1}>
+                {currentTrack.artist}
+              </Text>
+            </View>
+          </View>
 
-          {/* Close Button */}
-          <TouchableOpacity onPress={stopTrack} style={styles.iconBtn}>
-            <Ionicons name="close" size={24} color="#b3b3b3" />
-          </TouchableOpacity>
+          <View style={styles.controls}>
+            <TouchableOpacity onPress={togglePlay} style={styles.playBtn}>
+              <Ionicons 
+                name={isPlaying ? "pause" : "play"} 
+                size={24} 
+                color="white" 
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={stopTrack} style={styles.closeBtn}>
+              <Ionicons name="close-outline" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </BlurView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    // We remove the absolute 'bottom: 90' which was causing the float-up
+    position: 'absolute',
+    bottom: 0, 
+    width: '100%',
+    paddingBottom: 10, // Adjust this based on your TabBar height
+    paddingHorizontal: 10,
+    zIndex: 999,
+  },
   container: {
-    backgroundColor: '#282828',
-    borderRadius: 10,
+    backgroundColor: 'rgba(20, 20, 20, 0.9)', // Slightly more solid for visibility
+    borderRadius: 16,
     overflow: 'hidden',
-    elevation: 10, // Shadow for Android
-    shadowColor: '#000', // Shadow for iOS
-    shadowOffset: { width: 0, height: 4 },
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    // Shadow for depth
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.5,
-    shadowRadius: 5,
+    shadowRadius: 10,
+    elevation: 20,
   },
   progressBackground: {
-    height: 2,
-    backgroundColor: '#444',
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   progressFill: {
-    height: 2,
-    backgroundColor: '#1DB954',
+    height: 3,
+    backgroundColor: colors.primary,
+    // Creating a glow effect for the progress bar
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   img: {
-    width: 42,
-    height: 42,
-    borderRadius: 4,
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   info: {
     flex: 1,
@@ -79,21 +109,44 @@ const styles = StyleSheet.create({
   },
   title: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '700',
     fontSize: 14,
+    letterSpacing: -0.2,
+  },
+  artistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    marginRight: 6,
   },
   artist: {
-    color: '#b3b3b3',
+    color: '#aaa',
     fontSize: 12,
-    marginTop: 2,
+    fontWeight: '500',
   },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iconBtn: {
-    paddingHorizontal: 8,
+  playBtn: {
+    width: 40,
+    height: 40,
+    backgroundColor: colors.primary,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+  },
+  closeBtn: {
+    marginLeft: 10,
+    padding: 5,
   }
 });

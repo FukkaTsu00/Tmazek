@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase/firebase';
+import { colors } from '../theme/colors';
 
 // Screens
 import HomeScreen from '../screens/HomeScreen';
@@ -25,8 +26,8 @@ const Stack = createNativeStackNavigator();
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 90 : 70;
 
 const stackOptions = {
-  headerStyle: { backgroundColor: '#121212' },
-  headerTintColor: '#fff',
+  headerStyle: { backgroundColor: colors.background },
+  headerTintColor: colors.text,
   headerTitleStyle: { fontWeight: 'bold' },
 };
 
@@ -85,11 +86,11 @@ function ProfileStack() {
 
 function MainTabs() {
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Tab.Navigator screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: '#1DB954',
-        tabBarInactiveTintColor: '#b3b3b3',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: { 
           height: TAB_BAR_HEIGHT,
           position: 'absolute',
@@ -129,7 +130,7 @@ export default function AppNavigator() {
     return onAuthStateChanged(auth, (u) => { setUser(u); setLoading(false); });
   }, []);
 
-  if (loading) return <View style={styles.centered}><ActivityIndicator color="#1DB954" /></View>;
+  if (loading) return <View style={styles.centered}><ActivityIndicator color={colors.primary} /></View>;
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -149,6 +150,6 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', backgroundColor: '#000' },
   playerFloating: { position: 'absolute', left: 8, right: 8, zIndex: 9999 },
   headerIconLeft: { marginLeft: 15 },
-  profileCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#1DB954', justifyContent: 'center', alignItems: 'center' },
+  profileCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center' },
   profileLetter: { color: 'white', fontSize: 14, fontWeight: 'bold' },
 });

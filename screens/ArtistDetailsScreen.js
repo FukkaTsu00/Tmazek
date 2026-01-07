@@ -1,14 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { 
+  View, Text, Image, StyleSheet, FlatList, 
+  TouchableOpacity, ActivityIndicator, StatusBar, ImageBackground, Dimensions 
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getArtistDetails } from '../services/Deezer';
 import { usePlayer } from '../context/PlayerContext';
+import { colors } from '../theme/colors';
 
-export default function ArtistDetailsScreen({ route }) {
+const { width } = Dimensions.get('window');
+
+export default function ArtistDetailsScreen({ route, navigation }) {
   const { artistId, artistName } = route.params;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { playTrack } = usePlayer();
+  const { playTrack, currentTrack, isPlaying } = usePlayer();
 
   useEffect(() => {
     getArtistDetails(artistId).then(res => {
@@ -17,11 +24,9 @@ export default function ArtistDetailsScreen({ route }) {
     }).catch(() => setLoading(false));
   }, [artistId]);
 
-  // Helper to ensure the track object has the required fields for the MiniPlayer
   const handlePlay = (track) => {
     playTrack({
       ...track,
-      // Map Deezer's nested album cover to the 'image' field the player uses
       image: track.album?.cover_medium || track.image || data?.info?.picture_medium,
       artist: track.artist?.name || String(artistName)
     });
@@ -29,69 +34,158 @@ export default function ArtistDetailsScreen({ route }) {
 
   if (loading || !data) {
     return (
-      <View style={styles.darkContainer}>
-        <ActivityIndicator size="large" color="#1DB954" />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      
       <FlatList
         data={data?.tracks || []}
         keyExtractor={(item) => item.id.toString()}
-        // Extra padding at bottom so the last song isn't covered by the bar
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
+        showsVerticalScrollIndicator={false}
         ListHeaderComponent={() => (
           <View>
-            <Image source={{ uri: data?.info?.picture_xl }} style={styles.banner} />
-            <View style={styles.overlay}>
-              <Text style={styles.artistTitle}>{String(artistName)}</Text>
+            {/* CINEMATIC ARTIST BANNER */}
+            <ImageBackground source={{ uri: data?.info?.picture_xl }} style={styles.banner}>
+              <LinearGradient
+                colors={['rgba(15,15,15,0.2)', 'rgba(15,15,15,0.6)', '#0F0F0F']}
+                style={styles.gradient}
+              />
+              
               <TouchableOpacity 
-                style={styles.playBtn} 
+                style={styles.backButton} 
+                onPress={() => navigation.goBack()}
+              >
+                <View style={styles.backCircle}>
+                  <Ionicons name="chevron-back" size={24} color="white" />
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.bannerContent}>
+                <Text style={styles.artistTitle} numberOfLines={1}>{String(artistName)}</Text>
+                <View style={styles.statsRow}>
+                  <Ionicons name="people" size={16} color={colors.primary} />
+                  <Text style={styles.fanCount}>
+                    {data?.info?.nb_fan ? data.info.nb_fan.toLocaleString() : '0'} fans
+                  </Text>
+                </View>
+              </View>
+            </ImageBackground>
+
+            {/* FLOATING ACTION BAR */}
+            <View style={styles.actionRow}>
+              <TouchableOpacity style={styles.secondaryBtn}>
+                <Text style={styles.followText}>Follow</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.mainPlayBtn}
                 onPress={() => data?.tracks?.[0] && handlePlay(data.tracks[0])}
               >
-                <Ionicons name="play" size={28} color="black" />
+                <Ionicons name="play" size={32} color="white" style={{ marginLeft: 4 }} />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.secondaryBtn}>
+                <Ionicons name="shuffle" size={22} color="white" />
               </TouchableOpacity>
             </View>
+
             <Text style={styles.sectionTitle}>Popular Tracks</Text>
           </View>
         )}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.trackRow} onPress={() => handlePlay(item)}>
-            <Image source={{ uri: item.album?.cover_small }} style={styles.trackImg} />
-            <View style={styles.trackInfo}>
-              <Text style={styles.trackTitle} numberOfLines={1}>{item.title}</Text>
-              <Text style={styles.trackMeta}>
-                {item.artist?.name ? item.artist.name : String(artistName)}
-              </Text>
-            </View>
-            <Ionicons name="ellipsis-horizontal" size={20} color="#b3b3b3" />
-          </TouchableOpacity>
-        )}
+        renderItem={({ item, index }) => {
+          const isActive = currentTrack?.id === item.id;
+          return (
+            <TouchableOpacity 
+              style={[styles.trackCard, isActive && styles.activeCard]} 
+              onPress={() => handlePlay(item)}
+            >
+              <Image source={{ uri: item.album?.cover_small }} style={styles.trackImg} />
+              
+              <View style={styles.trackInfo}>
+                <Text style={[styles.trackTitle, isActive && { color: colors.primary }]} numberOfLines={1}>
+                  {item.title}
+                </Text>
+                <Text style={styles.trackAlbumText}>{item.album?.title}</Text>
+              </View>
+
+              {isActive && isPlaying ? (
+                 <Ionicons name="stats-chart" size={16} color={colors.primary} style={{ marginRight: 15 }} />
+              ) : (
+                <Text style={styles.durationText}>
+                   {Math.floor(item.duration / 60)}:{(item.duration % 60).toString().padStart(2, '0')}
+                </Text>
+              )}
+              
+              <TouchableOpacity style={styles.menuIcon}>
+                <Ionicons name="ellipsis-vertical" size={18} color="#444" />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          );
+        }}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
-  darkContainer: { flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center' },
-  banner: { width: '100%', height: 300 },
-  overlay: { 
-    position: 'absolute', top: 0, left: 0, right: 0, height: 300, 
-    backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end', padding: 20 
+  container: { flex: 1, backgroundColor: '#0F0F0F' },
+  loadingContainer: { flex: 1, backgroundColor: '#0F0F0F', justifyContent: 'center', alignItems: 'center' },
+  
+  // Banner Styles
+  banner: { width: '100%', height: 380, justifyContent: 'flex-end' },
+  gradient: { ...StyleSheet.absoluteFillObject },
+  backButton: { position: 'absolute', top: 60, left: 20, zIndex: 10 },
+  backCircle: { 
+    width: 40, height: 40, borderRadius: 20, 
+    backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' 
   },
-  artistTitle: { color: 'white', fontSize: 42, fontWeight: 'bold' },
-  playBtn: { 
-    position: 'absolute', right: 20, bottom: -28, backgroundColor: '#1DB954', 
-    width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center',
-    elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5
+  bannerContent: { paddingHorizontal: 20, paddingBottom: 45 },
+  artistTitle: { 
+    color: 'white', fontSize: 48, fontWeight: '900', 
+    letterSpacing: -1.5, marginBottom: 5 
   },
-  sectionTitle: { color: 'white', fontSize: 20, fontWeight: 'bold', margin: 20, marginTop: 45 },
-  trackRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 18 },
-  trackImg: { width: 48, height: 48, borderRadius: 4 },
+  statsRow: { flexDirection: 'row', alignItems: 'center' },
+  fanCount: { color: colors.primary, marginLeft: 8, fontSize: 14, fontWeight: '600' },
+
+  // Action Row
+  actionRow: { 
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', 
+    marginTop: -35, marginBottom: 10 
+  },
+  mainPlayBtn: { 
+    backgroundColor: colors.primary, width: 70, height: 70, borderRadius: 35, 
+    justifyContent: 'center', alignItems: 'center', marginHorizontal: 25,
+    shadowColor: colors.primary, shadowOpacity: 0.5, shadowRadius: 15, elevation: 12
+  },
+  secondaryBtn: { 
+    width: 90, height: 44, borderRadius: 22, backgroundColor: '#181818', 
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#333' 
+  },
+  followText: { color: 'white', fontWeight: 'bold', fontSize: 13 },
+
+  sectionTitle: { 
+    color: 'white', fontSize: 22, fontWeight: 'bold', 
+    marginHorizontal: 20, marginTop: 30, marginBottom: 15 
+  },
+
+  // Track Card Styles
+  trackCard: { 
+    flexDirection: 'row', alignItems: 'center', 
+    backgroundColor: '#141414', marginHorizontal: 16, 
+    marginBottom: 8, padding: 10, borderRadius: 12,
+  },
+  activeCard: { backgroundColor: '#1C1612', borderWidth: 1, borderColor: colors.primary + '30' },
+  trackImg: { width: 48, height: 48, borderRadius: 8 },
   trackInfo: { flex: 1, marginLeft: 15 },
-  trackTitle: { color: 'white', fontSize: 16, fontWeight: '500' },
-  trackMeta: { color: '#b3b3b3', fontSize: 13, marginTop: 2 }
+  trackTitle: { color: 'white', fontSize: 15, fontWeight: '600', marginBottom: 3 },
+  trackAlbumText: { color: '#666', fontSize: 12 },
+  durationText: { color: '#444', fontSize: 12, marginRight: 15 },
+  menuIcon: { padding: 4 }
 });
