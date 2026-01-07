@@ -55,7 +55,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.headerSection}>
             <View>
               <Text style={styles.welcomeText}>Good {getTimeOfDay()}</Text>
-              <Text style={styles.userName}>{auth.currentUser?.email?.split('@')[0] || 'Music Lover'}</Text>
+              <Text style={styles.userName}>{auth.currentUser?.displayName || 'User'}</Text>
             </View>
             
             {/* The Unified Profile Style */}
@@ -68,8 +68,8 @@ export default function HomeScreen({ navigation }) {
                 style={styles.profileCircle}
               >
                 <Text style={styles.profileLetter}>
-                  {auth.currentUser?.email?.charAt(0).toUpperCase() || 'U'}
-                </Text>
+                  {(auth.currentUser?.displayName || 'U').charAt(0).toUpperCase()} 
+                    </Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
